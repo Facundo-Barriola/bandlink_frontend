@@ -43,6 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         username: meData.username,
         displayName: meData.username,
         emailVerified: meData.emailVerified,
+        role: meData.user_roles?.[0]?.role ?? null
       })
     }
   }, [meData, setUser])

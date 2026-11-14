@@ -34,7 +34,7 @@ export type AuthUser = {
   username: string
   displayName: string
   emailVerified: boolean
-  role: 'musician' | 'studio' | null
+  role: 'MUSICIAN' | 'STUDIO_OWNER' | null
 }
 
 export type AuthMe = {
@@ -43,6 +43,7 @@ export type AuthMe = {
   username: string
   sessionId: string
   emailVerified: boolean
+  user_roles: { role: 'MUSICIAN' | 'STUDIO_OWNER' }[]
 }
 
 export type AuthTokens = {

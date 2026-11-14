@@ -35,7 +35,6 @@ const handleSubmit = (e: React.SubmitEvent) => {
         onSubmit={handleSubmit}
         className="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-md flex flex-col gap-5"
       >
-        {/* Logo */}
         <div className="flex justify-center">
           <Image
             src="/logo-bandlink.png"
@@ -48,10 +47,13 @@ const handleSubmit = (e: React.SubmitEvent) => {
         </div>
 
         <h2 className="text-3xl font-bold text-center" style={{ color: '#65558F' }}>
-          Iniciar sesión
+          BandLink
         </h2>
 
-        {/* Email */}
+        <h3 className="text-lg font-semibold text-center" style={{ color: '#65558F' }}>
+          Iniciar sesión
+        </h3>
+
         <input
           type="email"
           value={email}
@@ -62,7 +64,6 @@ const handleSubmit = (e: React.SubmitEvent) => {
           className={inputClass}
         />
 
-        {/* Contraseña */}
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -95,7 +96,6 @@ const handleSubmit = (e: React.SubmitEvent) => {
           </button>
         </div>
 
-        {/* Recordar sesión + Olvidé contraseña */}
         <div className="flex items-center justify-between">
           <label
             className="flex items-center gap-2 text-sm select-none cursor-pointer"
@@ -118,7 +118,6 @@ const handleSubmit = (e: React.SubmitEvent) => {
           </Link>
         </div>
 
-        {/* Error */}
         {login.isError && (
           <div className="flex items-start gap-2 border border-red-300 bg-red-50 rounded-lg px-3.5 py-2.5">
             <svg className="text-red-500 mt-0.5 flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -128,7 +127,6 @@ const handleSubmit = (e: React.SubmitEvent) => {
           </div>
         )}
 
-        {/* Botón */}
         <button
           type="submit"
           disabled={login.isPending}

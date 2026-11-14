@@ -42,9 +42,10 @@ export const useAuthStore = create<AuthState>()(
               accessToken: state.accessToken,
               refreshToken: state.refreshToken,
               sessionId: state.sessionId,
+              user: state.user,
               rememberMe: true,
             }
-          : { rememberMe: false }, // solo persiste la preferencia, no los tokens
+          : { rememberMe: false }, 
     },
   ),
 )
