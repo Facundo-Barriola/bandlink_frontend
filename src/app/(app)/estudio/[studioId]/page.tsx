@@ -1,11 +1,17 @@
 'use client'
 
-import { useRef, useState, useMemo } from 'react'
-import { useParams } from 'next/navigation'
+import { Suspense, useRef, useState, useMemo } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppNavbar } from '@/components/AppNavbar'
 import { useAuthStore } from '@/store/auth.store'
 import { studioApi } from '@/lib/api/studio'
+import { BookingModal } from '@/components/bookings/BookingModal'
+import { ReviewsSection } from '@/components/reviews/ReviewsSection'
+import { ReportButton } from '@/components/reviews/ReportButton'
+import { RoomBlocksPanel } from '@/components/studio/RoomBlocksPanel'
+import { EditStudioModal } from '@/components/studio/EditStudioModal'
+import { RoomPickerModal } from '@/components/studio/RoomPickerModal'
 import type { Equipment, AddAvailabilityRule } from '@/types/studio'
 import {
   Building2, Star, MapPin, Phone, Clock, ImageIcon,
@@ -357,6 +363,7 @@ function EditRoomModal({ room, studioId, onClose }: { room: any; studioId: strin
 function RoomCard({ room, studioId, isMusician, isOwner }: { room: any; studioId: string; isMusician: boolean; isOwner: boolean }) {
   const [editOpen, setEditOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [bookingOpen, setBookingOpen] = useState(false)
 
   const { data: rules = [] } = useQuery({
     queryKey: ['studio', studioId, 'room', room.room_id, 'rules'],
@@ -375,6 +382,7 @@ function RoomCard({ room, studioId, isMusician, isOwner }: { room: any; studioId
   return (
     <div className="border border-[#65558F]/20 rounded-xl overflow-hidden">
       {editOpen && <EditRoomModal room={room} studioId={studioId} onClose={() => setEditOpen(false)} />}
+      {bookingOpen && <BookingModal studioId={studioId} room={room} onClose={() => setBookingOpen(false)} />}
       <div
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#65558F]/5 transition-colors cursor-pointer"
         onClick={() => setExpanded((v) => !v)}
@@ -438,6 +446,9 @@ function RoomCard({ room, studioId, isMusician, isOwner }: { room: any; studioId
             )}
           </div>
 
+          {/* Bloqueos puntuales (CU25) – solo el dueño */}
+          {isOwner && <RoomBlocksPanel studioId={studioId} roomId={room.room_id} />}
+
           {/* Equipamiento */}
           {equipment.length > 0 && (
             <div>
@@ -461,7 +472,11 @@ function RoomCard({ room, studioId, isMusician, isOwner }: { room: any; studioId
 
           {isMusician && (
             <button
-              className="mt-1 w-full rounded-full py-2.5 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+              type="button"
+              onClick={() => setBookingOpen(true)}
+              disabled={!room.base_hourly_price}
+              title={!room.base_hourly_price ? 'La sala todavía no tiene precio configurado' : undefined}
+              className="mt-1 w-full disabled:opacity-50 disabled:cursor-not-allowed rounded-full py-2.5 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#65558F' }}
             >
               <CalendarCheck size={15} />
@@ -477,8 +492,20 @@ function RoomCard({ room, studioId, isMusician, isOwner }: { room: any; studioId
 
 
 export default function EstudioPage() {
+  return (
+    <Suspense>
+      <EstudioPageInner />
+    </Suspense>
+  )
+}
+
+function EstudioPageInner() {
   const params = useParams()
   const studioId = params.studioId as string
+  const searchParams = useSearchParams()
+  const [editStudioOpen, setEditStudioOpen] = useState(false)
+  // Viene de "Reservar" en la búsqueda: abrir directamente la elección de sala
+  const [roomPickerOpen, setRoomPickerOpen] = useState(searchParams.get('reservar') === '1')
   const currentUser = useAuthStore((s) => s.user)
   const queryClient = useQueryClient()
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -542,8 +569,7 @@ export default function EstudioPage() {
 
   const place = studio?.places
   const rooms: any[] = studio?.rehearsal_rooms ?? []
-  const reviews: any[] = reviewsData?.items ?? []
-  const avgRating: number = reviewsData?.average_rating ?? 0
+  const avgRating: number = Number(reviewsData?.average_rating ?? 0)
   const totalReviews: number = reviewsData?.total_reviews ?? 0
 
   const avatarUrl = studio?.profile_picture_url
@@ -581,6 +607,15 @@ export default function EstudioPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <AppNavbar />
+      {editStudioOpen && studio && <EditStudioModal studio={studio} onClose={() => setEditStudioOpen(false)} />}
+      {roomPickerOpen && studio && isMusician && (
+        <RoomPickerModal
+          studioId={studioId}
+          studioName={studio.name}
+          rooms={rooms}
+          onClose={() => setRoomPickerOpen(false)}
+        />
+      )}
 
       {addRoomOpen && (
         <AddRoomModal
@@ -657,8 +692,24 @@ export default function EstudioPage() {
                 )}
               </div>
 
+              {!isOwner && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {isMusician && (
+                    <button
+                      onClick={() => setRoomPickerOpen(true)}
+                      className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white"
+                      style={{ backgroundColor: '#65558F' }}
+                    >
+                      <CalendarCheck size={14} /> Reservar
+                    </button>
+                  )}
+                  <ReportButton targetType="studio" targetId={studioId} variant="icon" />
+                </div>
+              )}
+
               {isOwner && (
                 <button
+                  onClick={() => setEditStudioOpen(true)}
                   className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold border-2 transition-colors hover:bg-[#65558F]/10 shrink-0"
                   style={{ borderColor: '#65558F', color: '#65558F' }}
                 >
@@ -784,60 +835,13 @@ export default function EstudioPage() {
           )}
         </div>
 
-        {/* ── Reseñas ──────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Star size={18} style={{ color: '#65558F' }} />
-            <h2 className="text-base font-bold text-gray-900">Reseñas</h2>
-            <span className="text-sm text-gray-400 ml-1">({totalReviews})</span>
-          </div>
-
-          {totalReviews > 0 && (
-            <div className="flex items-center gap-2 mb-5">
-              <StarRating rating={avgRating} />
-              <span className="text-sm font-semibold text-gray-700">{avgRating.toFixed(1)}</span>
-            </div>
-          )}
-
-          {reviews.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">
-              {isOwner ? 'Todavía no recibiste reseñas.' : 'Este estudio aún no tiene reseñas.'}
-            </p>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {reviews.map((r: any) => {
-                const reviewer = r.users
-                const initials = (reviewer?.display_name || reviewer?.username || '?').charAt(0).toUpperCase()
-                return (
-                  <div key={r.studio_review_id} className="flex gap-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                      style={{ backgroundColor: '#65558F' }}
-                    >
-                      {initials}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-gray-800">
-                          {reviewer?.display_name || reviewer?.username}
-                        </span>
-                        <StarRating rating={r.rating} />
-                      </div>
-                      {r.comment && (
-                        <p className="text-sm text-gray-600 leading-relaxed">{r.comment}</p>
-                      )}
-                      <p className="text-xs text-gray-400 mt-1">
-                        {new Date(r.created_at).toLocaleDateString('es-AR', {
-                          day: 'numeric', month: 'long', year: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        {/* ── Reseñas (CU34 / CU44) ──────────────────────────────────────── */}
+        <ReviewsSection
+          target={{ type: 'studio', id: studioId }}
+          canWrite={!isOwner && isMusician}
+          emptyText={isOwner ? 'Todavía no recibiste reseñas.' : 'Este estudio aún no tiene reseñas.'}
+          writeHint="Podés calificar la sala después de completar una reserva."
+        />
 
       </main>
 

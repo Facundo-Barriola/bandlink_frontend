@@ -8,9 +8,11 @@ import { useAuthStore } from '@/store/auth.store'
 import { musiciansApi } from '@/lib/api/musicians'
 import { bandsApi } from '@/lib/api/bands'
 import { socialApi } from '@/lib/api/social'
+import { ReviewsSection } from '@/components/reviews/ReviewsSection'
+import { ReportButton } from '@/components/reviews/ReportButton'
 import { chatApi } from '@/lib/api/chat'
 import {
-    Music2, Star, Users, Camera, ImageIcon,
+    Music2, Users, Camera, ImageIcon,
     Pencil, Plus, X, MapPin, ChevronRight,
     MessageCircle, UserPlus, UserCheck, UserX,
 } from 'lucide-react'
@@ -412,6 +414,7 @@ export default function PerfilPage() {
                         {followingUser ? '...' : 'Seguir'}
                     </button>
                 )}
+                <ReportButton targetType="user" targetId={profileUserId} variant="icon" />
             </div>
         )
     }
@@ -523,16 +526,13 @@ export default function PerfilPage() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-sm p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Star size={18} style={{ color: '#65558F' }} />
-                        <h2 className="text-base font-bold text-gray-900">Reseñas</h2>
-                        <span className="text-sm text-gray-400 ml-1">(0)</span>
-                    </div>
-                    <p className="text-sm text-gray-400 text-center py-8">
-                        {isOwnProfile ? 'Todavía no recibiste reseñas.' : 'Este músico aún no tiene reseñas.'}
-                    </p>
-                </div>
+                {/* Reseñas (CU35 / CU45) */}
+                <ReviewsSection
+                    target={{ type: 'user', id: profileUserId }}
+                    canWrite={!isOwnProfile}
+                    emptyText={isOwnProfile ? 'Todavía no recibiste reseñas.' : 'Este músico aún no tiene reseñas.'}
+                    writeHint="Podés calificar a músicos con los que tengas conexión, banda o eventos en común."
+                />
 
                 <div className="bg-white rounded-2xl shadow-sm p-6">
                     <div className="flex items-center justify-between mb-4">

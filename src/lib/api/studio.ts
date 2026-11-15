@@ -1,6 +1,14 @@
 import {client} from './client';
 import type { CreateStudio, Studio, Equipment, Room, CreateRoom, AddRoomEquipment, AddAvailabilityRule, AvailabilityRule } from '@/types/studio';
 
+export interface RoomBlock {
+    block_id: string
+    room_id: string
+    starts_at: string
+    ends_at: string
+    reason: string | null
+}
+
 
 export const studioApi = {
     getEquipmentCatalog: () =>
@@ -40,6 +48,20 @@ export const studioApi = {
 
     deleteStudioMedia: (studioId: string, mediaId: string) =>
         client.delete(`media/studios/${studioId}/${mediaId}`).then((r) => r.data),
+
+    /** Editar datos del estudio (nombre, descripción, teléfono, ubicación). */
+    updateStudio: (studioId: string, dto: { name?: string; description?: string; phone?: string; place_id?: string }) =>
+        client.patch<any>(`studios/${studioId}`, dto).then((r) => r.data),
+
+    // ── Bloqueos de sala (CU25: feriados, mantenimiento, uso propio) ──
+    getRoomBlocks: (studioId: string, roomId: string) =>
+        client.get<RoomBlock[]>(`studios/${studioId}/rooms/${roomId}/blocks`).then((r) => r.data),
+
+    createRoomBlock: (studioId: string, roomId: string, dto: { starts_at: string; ends_at: string; reason?: string }) =>
+        client.post<RoomBlock>(`studios/${studioId}/rooms/${roomId}/blocks`, dto).then((r) => r.data),
+
+    deleteRoomBlock: (studioId: string, roomId: string, blockId: string) =>
+        client.delete(`studios/${studioId}/rooms/${roomId}/blocks/${blockId}`).then((r) => r.data),
 
     getStudioById: (studioId: string) =>
         client.get<any>(`studios/${studioId}`).then((r) => r.data),

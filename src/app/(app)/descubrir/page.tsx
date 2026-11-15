@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { AppNavbar } from '@/components/AppNavbar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -19,6 +20,7 @@ import {
   ChevronRight,
   Clock,
   Guitar,
+  Map as MapIcon,
 } from 'lucide-react'
 import { discoveryApi } from '@/lib/api/discovery'
 
@@ -409,7 +411,7 @@ function SearchResults({ query, category }: { query: string; category: Category 
                 key={s.studio_id}
                 studio={s}
                 onClick={() => router.push(`/estudio/${s.studio_id}`)}
-                onBook={() => router.push(`/estudio/${s.studio_id}/reservar`)}
+                onBook={() => router.push(`/estudio/${s.studio_id}?reservar=1`)}
               />
             ))}
           </div>
@@ -594,9 +596,17 @@ export default function DescubrirPage() {
 
         {/* ── Barra de búsqueda + chips ──────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm p-4 mb-6">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 px-1">
-            Descubrir
-          </p>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Descubrir
+            </p>
+            <Link
+              href="/mapa"
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#65558F] hover:underline"
+            >
+              <MapIcon size={13} /> Ver cerca mío en el mapa
+            </Link>
+          </div>
 
           {/* Input */}
           <div className="relative">

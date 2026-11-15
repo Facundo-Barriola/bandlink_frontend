@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { AppNavbar } from '@/components/AppNavbar'
 import { bandsApi } from '@/lib/api/bands'
 import { socialApi } from '@/lib/api/social'
-import type { Friend } from '@/lib/api/social'
+import type { Friend } from '@/types/social'
 import {
   Music2,
   ArrowLeft,

@@ -23,6 +23,7 @@ export default function RegisterForm() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const onSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -30,6 +31,12 @@ export default function RegisterForm() {
 
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    // CU01 paso 7: sin aceptar términos no se crea la cuenta
+    if (!acceptTerms) {
+      setError("Tenés que aceptar los Términos y Condiciones y la Política de Privacidad.");
       return;
     }
 
@@ -183,8 +190,23 @@ export default function RegisterForm() {
           className={inputClass}
         />
 
+        <label className="flex items-start gap-2 text-sm select-none cursor-pointer" style={{ color: "#65558F" }}>
+          <input
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            className="w-4 h-4 mt-0.5 accent-[#65558F] cursor-pointer shrink-0"
+          />
+          <span>
+            Acepto los{" "}
+            <Link href="/terminos" target="_blank" className="font-semibold underline">Términos y Condiciones</Link>
+            {" "}y la{" "}
+            <Link href="/terminos#privacidad" target="_blank" className="font-semibold underline">Política de Privacidad</Link>
+          </span>
+        </label>
+
         <button
-          disabled={loading}
+          disabled={loading || !acceptTerms}
           className="w-full py-3 rounded-full font-semibold transition-colors duration-200 disabled:opacity-50 text-white hover:brightness-95 active:scale-[0.99]"
           style={{ backgroundColor: "#65558F" }}
         >
@@ -192,7 +214,7 @@ export default function RegisterForm() {
         </button>
 
         {error && (
-          <p className="text-red-600 text-sm text-center">{"Error al crear la cuenta"}</p>
+          <p className="text-red-600 text-sm text-center">{error}</p>
         )}
 
         <p className="text-center text-sm" style={{ color: "#65558F" }}>

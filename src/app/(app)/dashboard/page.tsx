@@ -5,6 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import { bandsApi } from '@/lib/api/bands'
 import { studioApi } from '@/lib/api/studio'
 import { bookingsApi, type Booking } from '@/lib/api/bookings'
+import { socialApi } from '@/lib/api/social'
+import { reviewsApi } from '@/lib/api/reviews'
+import { useAuthStore } from '@/store/auth.store'
+import { formatBookingTime, BOOKING_STATUS_LABEL, BOOKING_STATUS_COLOR } from '@/lib/booking-format'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
@@ -74,33 +78,22 @@ function BookingRow({ booking }: { booking: Booking }) {
   const end = new Date(booking.ends_at)
 
   const dateStr = start.toLocaleDateString('es-AR', {
+    timeZone: 'UTC',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   })
-  const timeFrom = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
-  const timeTo = end.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const timeFrom = formatBookingTime(booking.starts_at)
+  const timeTo = formatBookingTime(booking.ends_at)
 
-  const statusLabel: Record<string, string> = {
-    confirmed: 'Confirmada',
-    pending: 'Pendiente',
-    pending_payment: 'Pago pendiente',
-    hold: 'Reservada',
-    cancelled: 'Cancelada',
-  }
-  const statusColor: Record<string, string> = {
-    confirmed: 'bg-green-100 text-green-700',
-    pending: 'bg-yellow-100 text-yellow-700',
-    pending_payment: 'bg-orange-100 text-orange-700',
-    hold: 'bg-blue-100 text-blue-700',
-    cancelled: 'bg-red-100 text-red-700',
-  }
+  const statusLabel = BOOKING_STATUS_LABEL
+  const statusColor = BOOKING_STATUS_COLOR
 
   return (
     <div className="flex items-center justify-between border border-gray-100 rounded-xl px-4 py-3 gap-3">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-gray-800 truncate">{booking.rehearsal_rooms.name}</p>
-        <p className="text-xs text-gray-400 truncate">{booking.users.display_name || booking.users.username}</p>
+        <p className="text-xs text-gray-400 truncate">{booking.users?.display_name || booking.users?.username}</p>
       </div>
       <div className="text-right shrink-0">
         <p className="text-xs font-medium text-gray-700">{dateStr}</p>
@@ -260,13 +253,10 @@ function StudioDashboard() {
                 {allHistory.slice(0, 15).map((b) => {
                   const start = new Date(b.starts_at)
                   const end = new Date(b.ends_at)
-                  const dateStr = start.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
-                  const timeFrom = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
-                  const timeTo = end.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
-                  const statusLabel: Record<string, string> = {
-                    confirmed: 'Confirmada', pending: 'Pendiente',
-                    pending_payment: 'Pago pend.', hold: 'Reservada', cancelled: 'Cancelada',
-                  }
+                  const dateStr = start.toLocaleDateString('es-AR', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' })
+                  const timeFrom = formatBookingTime(b.starts_at)
+                  const timeTo = formatBookingTime(b.ends_at)
+                  const statusLabel = BOOKING_STATUS_LABEL
                   const statusColor: Record<string, string> = {
                     confirmed: 'text-green-600', pending: 'text-yellow-600',
                     pending_payment: 'text-orange-600', hold: 'text-blue-600', cancelled: 'text-red-500',
@@ -274,7 +264,7 @@ function StudioDashboard() {
                   return (
                     <tr key={b.booking_id} className="hover:bg-gray-50 transition-colors">
                       <td className="py-2.5 pr-4 font-medium text-gray-800 truncate max-w-[120px]">{b.rehearsal_rooms.name}</td>
-                      <td className="py-2.5 pr-4 text-gray-500 truncate max-w-[120px]">{b.users.display_name || b.users.username}</td>
+                      <td className="py-2.5 pr-4 text-gray-500 truncate max-w-[120px]">{b.users?.display_name || b.users?.username}</td>
                       <td className="py-2.5 pr-4 text-gray-600 whitespace-nowrap">{dateStr}</td>
                       <td className="py-2.5 pr-4 text-gray-500 whitespace-nowrap">{timeFrom} – {timeTo}</td>
                       <td className={`py-2.5 font-semibold whitespace-nowrap ${statusColor[b.status] ?? 'text-gray-500'}`}>
@@ -302,33 +292,63 @@ function StudioDashboard() {
 
 function MusicianDashboard() {
   const router = useRouter()
+  const userId = useAuthStore((s) => s.user?.userId)
+
+  const { data: friends = [] } = useQuery({
+    queryKey: ['social', 'friends'],
+    queryFn: socialApi.getMyFriends,
+  })
+
+  const { data: myReviews } = useQuery({
+    queryKey: ['user', userId, 'reviews', 'summary'],
+    queryFn: async () => {
+      const r = await reviewsApi.getUserReviews(userId!)
+      return { average_rating: r.average_rating, total_reviews: r.total_reviews }
+    },
+    enabled: !!userId,
+  })
+  const avgRating = Number(myReviews?.average_rating ?? 0)
+  const ratingLabel = myReviews?.total_reviews ? `${avgRating.toFixed(1)} ★` : '—'
 
   const { data: bands = [], isLoading: loadingBands } = useQuery({
     queryKey: ['bands', 'mine'],
     queryFn: bandsApi.getMine,
   })
 
-  const upcomingBookings: {
-    id: string
-    roomName: string
-    studioName: string
-    date: string
-    timeFrom: string
-    timeTo: string
-  }[] = []
+  const { data: myActive } = useQuery({
+    queryKey: ['bookings', 'me', 'active', 'dashboard'],
+    queryFn: () => bookingsApi.getMyActiveBookings(5),
+  })
+
+  const upcomingBookings = (myActive?.items ?? []).map((b) => ({
+    id: b.booking_id,
+    roomName: b.rehearsal_rooms.name,
+    studioName: b.rehearsal_rooms.studios?.name ?? '',
+    date: new Date(b.starts_at).toLocaleDateString('es-AR', { timeZone: 'UTC', day: '2-digit', month: 'short' }),
+    timeFrom: formatBookingTime(b.starts_at),
+    timeTo: formatBookingTime(b.ends_at),
+  }))
 
   return (
     <div className="flex flex-col gap-6">
 
       {/* KPIs */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <KpiCard icon={Users} label="Conexiones" value={0} />
-        <KpiCard icon={Star} label="Puntaje promedio" value="—" />
+        <KpiCard icon={Users} label="Conexiones" value={friends.length} />
+        <KpiCard
+          icon={Star}
+          label={myReviews?.total_reviews ? `Puntaje promedio (${myReviews.total_reviews} reseñas)` : 'Puntaje promedio'}
+          value={ratingLabel}
+        />
         <KpiCard icon={Music2} label="Bandas activas" value={bands.length} />
       </div>
 
       {/* Próximas reservas */}
-      <Section title="Próximas reservas" icon={CalendarDays}>
+      <Section
+        title="Próximas reservas"
+        icon={CalendarDays}
+        action={<Link href="/reservas" className="text-xs font-semibold text-[#65558F] hover:underline">Ver todas</Link>}
+      >
         {upcomingBookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-2 text-gray-300">
             <Clock size={48} strokeWidth={1} />

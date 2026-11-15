@@ -15,11 +15,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Bell, CalendarDays, Users, Inbox, User, Settings, LogOut, Binoculars, Building2 } from 'lucide-react'
+import { UserPlus, CalendarCheck, CalendarDays, Users, Inbox, User, Settings, LogOut, Binoculars, Building2 } from 'lucide-react'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 const NAV_ITEMS = [
-  { label: 'Solicitudes', icon: Bell,        href: '/solicitudes' },
+  { label: 'Solicitudes', icon: UserPlus,    href: '/solicitudes' },
   { label: 'Mis eventos', icon: CalendarDays, href: '/eventos'     },
+  { label: 'Reservas',    icon: CalendarCheck, href: '/reservas'   },
   { label: 'Conexiones',  icon: Users,        href: '/conexiones'  },
   { label: 'Inbox',       icon: Inbox,        href: '/chat'       },
   { label: 'Descubrir',   icon: Binoculars,   href: '/descubrir'   },
@@ -48,7 +50,7 @@ export function AppNavbar() {
           <Image src="/logo-bandlink.png" alt="BandLink" width={80} height={80} className="object-contain" />
         </Link>
 
-        <nav className="flex items-center gap-16">
+        <nav className="flex items-center gap-4 lg:gap-10">
           {NAV_ITEMS.map(({ label, icon: Icon, href }) => (
             <Button
               key={href}
@@ -62,6 +64,8 @@ export function AppNavbar() {
           ))}
         </nav>
 
+        <div className="flex items-center gap-2 flex-shrink-0">
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger className="flex-shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#65558F]">
             <Avatar className="w-10 h-10 ring-2 ring-[#65558F]/30 hover:ring-[#65558F] transition-all cursor-pointer">
@@ -108,6 +112,7 @@ export function AppNavbar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
 
       </div>
     </header>
